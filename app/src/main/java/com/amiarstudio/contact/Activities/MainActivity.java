@@ -47,6 +47,8 @@ private String TAG ="zak";
 public static String Path;
 public static Uri uri;
 public static File file;
+private RecyclerView rv_contact;
+private RealmResults<Contact> result1;
 private ImageView contactPicture;
 private TextView contactName, contactNumber;
 private ImageButton add_picture;
@@ -60,18 +62,26 @@ private Realm realm;
         Realm.init(this);
         realm = Realm.getDefaultInstance();
 
-        RecyclerView rv_contact = findViewById(R.id.rv_contact);
-        LinearLayoutManager llm = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL,false);
+        rv_contact = findViewById(R.id.rv_contact);
+        LinearLayoutManager llm = new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.VERTICAL,false);
+
+       // llm.setReverseLayout(true);
         rv_contact.setLayoutManager(llm);
+
         RealmQuery<Contact> query = realm.where(Contact.class);
-        RealmResults<Contact> result1 = query.findAll();
+        result1 = query.findAll();
+        Log.i(TAG, "SIZE: "+result1.size());
         ContactAdapter = new ContactAdapter(result1,position -> {
             realm.beginTransaction();
             result1.deleteFromRealm(position);
             realm.commitTransaction();
             ContactAdapter.notifyDataSetChanged();
+
         });
+
         rv_contact.setAdapter(ContactAdapter);
+
+        rv_contact.smoothScrollToPosition(result1.size());
 
         add_picture = findViewById(R.id.add_picture);
 
@@ -102,7 +112,12 @@ private Realm realm;
                     .placeholder(R.drawable.ic_launcher_background)
                     .resize(100, 100)
                     .into(add_picture);
-            addContact(uri);
+            try {
+                addContact(uri);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
             if (!Permissions.checkStoragePermission(this)) {
                 Permissions.requestStoragePermission(this, STORAGE_PERMISSION_CODE_PROFILE);
 
@@ -122,9 +137,16 @@ private Realm realm;
         Log.i(TAG, "<uri>: "+uri.toString());
         addContact.setOnClickListener((View v)->{
 
-            realm.insertOrUpdate(contact);
-            realm.commitTransaction();
+            try {
+                realm.insertOrUpdate(contact);
+                realm.commitTransaction();
+            }catch (Exception e){
+                e.printStackTrace();
+                Toast.makeText(this,"This Contact Exists",Toast.LENGTH_LONG).show();
+            }
+            rv_contact.smoothScrollToPosition(result1.size());
             ContactAdapter.notifyDataSetChanged();
+
         });
 
 
